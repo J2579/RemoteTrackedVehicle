@@ -23,6 +23,9 @@ import ui.DoubleBufferedCanvas;
 @SuppressWarnings("serial")
 public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 
+	
+	private static final boolean RUNNING_ON_PI = false;
+	
 	private BufferedImage bridge;
 	
 	private JPanel motorLeft, motorRight;
@@ -50,7 +53,9 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 		
 		setLayout(new GridLayout(1, 3));
 		
-		model = new Model(); //Init model
+		model = new Model(RUNNING_ON_PI); //Init model
+		
+		
 		model.invertLeft(true);
 		
 		motorLeft = new JPanel();

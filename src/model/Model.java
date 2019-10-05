@@ -7,13 +7,16 @@ public class Model {
 	private boolean leftHeld, rightHeld, upHeld, downHeld;
 	private HBridge leftMotor, rightMotor;
 	private PinController controller;
+	private boolean updatePins;
 	
 	public void shutdownController() {
-		controller.shutdown();
+		
+		if(updatePins)
+			controller.shutdown();
 	}
 	
 	
-	public Model() {
+	public Model(boolean updatePins) {
 		leftHeld = false;
 		rightHeld = false;
 		upHeld = false;
@@ -21,7 +24,11 @@ public class Model {
 		
 		leftMotor = new HBridge(true);
 		rightMotor = new HBridge(false);
-		controller = new PinController(); //Init with default pins
+		
+		this.updatePins = updatePins;
+		
+		if(this.updatePins)
+			controller = new PinController(); //Init with default pins
 	}
 	
 	public void update() {
@@ -59,7 +66,8 @@ public class Model {
 			rightMotor.stop();
 		}
 		
-		controller.updatePins(getMotorState());
+		if(updatePins)
+			controller.updatePins(getMotorState());
 	}
 	
 	public boolean[][] getMotorState() {

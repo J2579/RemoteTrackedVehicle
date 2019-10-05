@@ -6,11 +6,14 @@ import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
 import com.pi4j.io.gpio.PinState;
+import com.pi4j.io.gpio.RaspiBcmPin;
+import com.pi4j.io.gpio.RaspiGpioProvider;
 import com.pi4j.io.gpio.RaspiPin;
+import com.pi4j.io.gpio.RaspiPinNumberingScheme;
 
 public class PinController {
 
-	private GpioController controller = GpioFactory.getInstance();
+	private GpioController controller; 
 	private ArrayList<GpioPinDigitalOutput> pins;
 
 	public void shutdown() {
@@ -19,14 +22,21 @@ public class PinController {
 	
 	public PinController() {
 		
-		GpioPinDigitalOutput b1s1 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_14, PinState.LOW);
-		GpioPinDigitalOutput b1s2 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_15, PinState.LOW);
-		GpioPinDigitalOutput b1s3 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_18, PinState.LOW);
-		GpioPinDigitalOutput b1s4 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_23, PinState.LOW);
-		GpioPinDigitalOutput b2s1 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_24, PinState.LOW);
-		GpioPinDigitalOutput b2s2 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_25, PinState.LOW);
-		GpioPinDigitalOutput b2s3 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_08, PinState.LOW);
-		GpioPinDigitalOutput b2s4 = controller.provisionDigitalOutputPin(RaspiPin.GPIO_07, PinState.LOW);
+		//BCM ---> GPIO
+		GpioFactory.setDefaultProvider(new RaspiGpioProvider(RaspiPinNumberingScheme.BROADCOM_PIN_NUMBERING));
+		
+		//Create instance from factory
+		controller = GpioFactory.getInstance();
+		
+		//Configure output pins
+		GpioPinDigitalOutput b1s1 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_14, PinState.LOW);
+		GpioPinDigitalOutput b1s2 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_15, PinState.LOW);
+		GpioPinDigitalOutput b1s3 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_18, PinState.LOW);
+		GpioPinDigitalOutput b1s4 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_23, PinState.LOW);
+		GpioPinDigitalOutput b2s1 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_24, PinState.LOW);
+		GpioPinDigitalOutput b2s2 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_25, PinState.LOW);
+		GpioPinDigitalOutput b2s3 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_08, PinState.LOW);
+		GpioPinDigitalOutput b2s4 = controller.provisionDigitalOutputPin(RaspiBcmPin.GPIO_07, PinState.LOW);
 		
 		pins.add(b1s1);
 		pins.add(b1s2);
