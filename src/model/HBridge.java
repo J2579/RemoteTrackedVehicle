@@ -134,7 +134,7 @@ public class HBridge {
 			string +=  "Backward";
 		else if(s1 && s3) //Terminals are shorted
 			string +=  "Stopped";
-		else if((s1 && s2) || (s3 && s4))
+		else if((s1 && s2) || (s3 && s4)) //Motor is shorted
 			string +=  "Bridge shorted. [This is bad!]";
 		else
 			string +=  "Neutral";

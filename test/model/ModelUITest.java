@@ -10,8 +10,8 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -90,11 +90,12 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 
 	private void loadBridge() {
 		try {
-			bridge = ImageIO.read(new File("assets/EMPTY_BRIDGE.png"));
+			URL bridgeUrl = ModelUITest.class.getResource("/EMPTY_BRIDGE.png");
+			bridge = ImageIO.read(bridgeUrl);
 		}
 		catch(IOException e) {
-			System.err.print("Unable to load assets. Check installation and try again.");
-			System.exit(-1);
+			System.out.print("Unable to load assets. Check installation and try again.");
+			bridge = null;
 		}
 	}
 
