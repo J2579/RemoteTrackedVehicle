@@ -1,36 +1,34 @@
-package model;
+package halfModel;
 
 import java.awt.event.KeyEvent;
 
-import gpio.PinController;
+import gpio.HalfPinController;
 
-public class Model {
+public class HalfModel {
 
 	private boolean leftHeld, rightHeld, upHeld, downHeld;
-	private HBridge leftMotor, rightMotor;
-	private PinController controller;
+	private HalfBridge leftMotor, rightMotor;
+	private HalfPinController controller;
 	private boolean updatePins;
 	
 	public void shutdownController() {
-		
-		if(updatePins)
+		if(updatePins) 
 			controller.shutdown();
 	}
 	
+	public HalfModel(boolean updatingPins) {
 	
-	public Model(boolean updatePins) {
 		leftHeld = false;
 		rightHeld = false;
 		upHeld = false;
 		downHeld = false;
 		
-		leftMotor = new HBridge(true);
-		rightMotor = new HBridge(false);
+		leftMotor = new HalfBridge(true);
+		rightMotor = new HalfBridge(false);
 		
-		this.updatePins = updatePins;
-		
-		if(this.updatePins)
-			controller = new PinController(); //Init with default pins
+		this.updatePins = updatingPins;
+		if(updatePins) 
+			controller = new HalfPinController();
 	}
 	
 	public void updateKBStateOnKeyPress(KeyEvent e) {
@@ -66,28 +64,28 @@ public class Model {
 			rightMotor.stop();
 		}
 		else if(leftHeld && !rightHeld && !upHeld && !downHeld) { //Only left
-			leftMotor.setMovingBw(); //Left track reverse, right track fw
-			rightMotor.setMovingFw();
+			leftMotor.setBackward(); //Left track reverse, right track fw
+			rightMotor.setForward();
 		}
 		else if(!leftHeld && rightHeld && !upHeld && !downHeld) { //Only right
-			leftMotor.setMovingFw(); //Right track reverse, left track fw
-			rightMotor.setMovingBw();
+			leftMotor.setForward(); //Right track reverse, left track fw
+			rightMotor.setBackward();
 		}
 		else if(!leftHeld && !rightHeld && upHeld && !downHeld) { //Only up
-			leftMotor.setMovingFw();
-			rightMotor.setMovingFw();
+			leftMotor.setForward();
+			rightMotor.setForward();
 		}
 		else if(!leftHeld && !rightHeld && !upHeld && downHeld) { //Only down
-			leftMotor.setMovingBw();
-			rightMotor.setMovingBw();
+			leftMotor.setBackward();
+			rightMotor.setBackward();
 		}
 		else if(rightHeld && (upHeld || downHeld)) {
-			leftMotor.coast();
-			rightMotor.setMovingBw();
+			leftMotor.stop();
+			rightMotor.setBackward();
 		}
 		else if(leftHeld && (upHeld || downHeld)) {
-			leftMotor.setMovingBw();
-			rightMotor.coast();
+			leftMotor.setBackward();
+			rightMotor.stop();
 		}
 		else { //No input
 			leftMotor.stop();
@@ -95,11 +93,12 @@ public class Model {
 		}
 		
 		if(updatePins)
-			controller.updatePins(getMotorState());
+			controller.updatePins(getMotorState(), 
+					leftMotor.getIsEnabled(), rightMotor.getIsEnabled());
 	}
 	
 	public boolean[][] getMotorState() {
-		return new boolean[][]{leftMotor.getBridgeState(),rightMotor.getBridgeState()};
+		return new boolean[][] {leftMotor.getMotorState(), rightMotor.getMotorState()};
 	}
 	
 	/** 
@@ -135,10 +134,10 @@ public class Model {
 	}
 	
 	public void invertLeft(boolean invert) {
-		this.leftMotor.invert(invert);
+		this.leftMotor.setIsInverted(invert);
 	}
 	
 	public void invertRight(boolean invert) {
-		this.rightMotor.invert(invert);
+		this.rightMotor.setIsInverted(invert);
 	}
 }

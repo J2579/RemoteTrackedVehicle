@@ -9,20 +9,18 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
-import java.net.URL;
 
-import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import halfModel.HalfModel;
 import ui.DoubleBufferedCanvas;
 import util.Helper;
 
+
 @SuppressWarnings("serial")
-public class ModelUITest extends JFrame implements KeyListener, ActionListener {
+public class HalfModelUITest extends JFrame implements KeyListener, ActionListener {
 
 	
 	/**********************************************************************
@@ -31,12 +29,10 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 	 * GPIO pins from being loaded (which most computers don't have)      *
 	 **********************************************************************/
 	private static final boolean RUNNING_ON_PI = false;
-	
-	private BufferedImage bridge;
-	
+
 	private JPanel motorLeft, motorRight;
 	private ModelWindow leftMotorWindow, rightMotorWindow;
-	private Model model;
+	private HalfModel model;
 	
 	private Timer tick;
 	
@@ -44,22 +40,20 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 	private static final int HEIGHT = 450;
 	
 	public static void main(String[] args) {
-		ModelUITest test = new ModelUITest();
+		HalfModelUITest test = new HalfModelUITest();
 		test.run();
 	}
 	
 	public void run() {
 		
-		loadBridge();
-		
-		setTitle("H Bridge Model Test");
+		setTitle("Half-H Bridge Model Test");
 		setSize(WIDTH,HEIGHT);
 		setLocation(0,0);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		
-		setLayout(new GridLayout(1, 3));
+		setLayout(new GridLayout(1, 2));
 		
-		model = new Model(RUNNING_ON_PI); //Init model
+		model = new HalfModel(RUNNING_ON_PI); //Init model
 		
 		
 		model.invertLeft(true);
@@ -97,17 +91,6 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 		tick = new Timer(17, this);
 		tick.setRepeats(true);
 		tick.start();
-	}
-
-	private void loadBridge() {
-		try {
-			URL bridgeUrl = ModelUITest.class.getResource("/EMPTY_BRIDGE.png");
-			bridge = ImageIO.read(bridgeUrl);
-		}
-		catch(IOException e) {
-			System.out.print("Unable to load assets. Check installation and try again.");
-			bridge = null;
-		}
 	}
 
 	@Override
@@ -156,8 +139,7 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 			g.fillRect(0, 0, getWidth(), getHeight()); //White out screen
 			g.setColor(Color.BLACK);
 			
-			g.drawImage(bridge, 0, 0, null); //Draw the bridge
-			
+
 			boolean[] bridgeState;
 			
 			//Status text / Setup
@@ -171,26 +153,14 @@ public class ModelUITest extends JFrame implements KeyListener, ActionListener {
 			}
 			
 			//Fill in the gates with the appropriate markings
-			if(bridgeState[0]) //s1
-				g.drawLine(190, 150, 190, 75);
-			else
-				g.drawLine(190, 150, 210, 75);
-			
-			if(bridgeState[1]) //s3
-				g.drawLine(190, 325, 190, 205);
-			else
-				g.drawLine(190, 325, 210, 205);
-			
-			if(bridgeState[2]) //s2
-				g.drawLine(375, 150, 375, 75);
-			else
-				g.drawLine(375, 150, 390, 75);
-			
-			if(bridgeState[3]) //s4
-				g.drawLine(375, 325, 375, 205);
-			else
-				g.drawLine(375, 325, 390, 205);
-			
+			for(int side = 0; side <= 1; ++side) {
+				if(bridgeState[side])
+					g.setColor(Color.GREEN);
+				else
+					g.setColor(Color.RED);
+				
+				g.fillRect(side * (getWidth()/2) + 15, 0, getWidth() - 15, getHeight() - 100);
+			}
 			
 		}
 		
