@@ -23,7 +23,7 @@ public class HalfModel {
 		upHeld = false;
 		downHeld = false;
 		
-		leftMotor = new HalfBridge(true);
+		leftMotor = new HalfBridge(true); //Inverted
 		rightMotor = new HalfBridge(false);
 		
 		this.updatePins = updatingPins;

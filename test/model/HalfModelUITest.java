@@ -10,6 +10,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.Timer;
@@ -31,6 +32,7 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 	private static final boolean RUNNING_ON_PI = false;
 
 	private JPanel motorLeft, motorRight;
+	private JButton quit;
 	private ModelWindow leftMotorWindow, rightMotorWindow;
 	private HalfModel model;
 	
@@ -51,7 +53,7 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 		setLocation(0,0);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		
-		setLayout(new GridLayout(1, 2));
+		setLayout(new GridLayout(1, 3));
 		
 		model = new HalfModel(RUNNING_ON_PI); //Init model
 		
@@ -59,35 +61,31 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 		model.invertLeft(true);
 		
 		motorLeft = new JPanel();
-		leftMotorWindow = new ModelWindow(WIDTH / 2, HEIGHT);
+		leftMotorWindow = new ModelWindow((WIDTH / 3), HEIGHT);
 		leftMotorWindow.isLeftMotor(true);
 		motorLeft.add(leftMotorWindow);
 		
 		motorRight = new JPanel();
-		rightMotorWindow = new ModelWindow(WIDTH / 2, HEIGHT);
+		rightMotorWindow = new ModelWindow((WIDTH / 3), HEIGHT);
 		rightMotorWindow.isLeftMotor(false);
 		motorRight.add(rightMotorWindow);
 		
+		JPanel quitPnl = new JPanel();
+		quit = new JButton("Exit");
+		quit.addActionListener(this);
+		quitPnl.add(quit);
+		
 		add(motorLeft);
 		add(motorRight);
+		add(quitPnl);
 		setVisible(true);
 		
 		leftMotorWindow.createAndSetBuffer();
 		rightMotorWindow.createAndSetBuffer();
 		
 		addKeyListener(this);
-		
-		//Cleanup code on close
-		addWindowListener(new WindowAdapter() {
+		requestFocus();
 
-			@Override
-			public void windowClosing(WindowEvent e) {
-				model.shutdownController();
-				super.windowClosing(e);
-			}
-			
-		});
-		
 		tick = new Timer(17, this);
 		tick.setRepeats(true);
 		tick.start();
@@ -105,7 +103,7 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 	}
 	
 	@Override
-	public void keyTyped(KeyEvent e) { return; }
+	public void keyTyped(KeyEvent e) {}
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -117,6 +115,10 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 			
 //			System.out.println(Helper.printBoolArr(model.getMotorState()[0]) + "," + Helper.printBoolArr(model.getMotorState()[1]));
 			
+		}
+		else if(e.getSource().equals(quit)) {
+			model.shutdownController();
+			System.exit(0);
 		}
 	}
 	
@@ -159,9 +161,8 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 				else
 					g.setColor(Color.RED);
 				
-				g.fillRect(side * (getWidth()/2) + 15, 0, getWidth() - 15, getHeight() - 100);
+				g.fillRect(side * (getWidth()/2), 0, getWidth(), getHeight() - 100);
 			}
-			
 		}
 		
 	}

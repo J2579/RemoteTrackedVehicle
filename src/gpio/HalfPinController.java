@@ -71,5 +71,7 @@ public class HalfPinController {
 			enableRight.high();
 		else
 			enableRight.low();
+		
+		System.out.println(enableLeft.isHigh() + ", " + pins.get(0).isHigh() + ", " + pins.get(1).isHigh());
 	}
 }
