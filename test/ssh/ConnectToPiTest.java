@@ -12,18 +12,20 @@ public class ConnectToPiTest {
 	public static void typeWord(String word, Robot rob) throws InterruptedException {
 		
 		char[] wordArr = word.toCharArray();
-		boolean upperCase = false;
 		int keyCode;
 		
 		for(int idx = 0; idx < wordArr.length; ++idx) {
 			
 			keyCode = KeyEvent.getExtendedKeyCodeForChar(wordArr[idx]);
 			
+			if(keyCode == KeyEvent.VK_UNDEFINED)
+				continue;
+			
 			if(Character.isUpperCase(wordArr[idx])) //Hold Shift
 				rob.keyPress(KeyEvent.VK_SHIFT);
 			
 			rob.keyPress(keyCode);
-			Thread.sleep(155);
+			Thread.sleep(155);  //This can probably have less delay
 			rob.keyRelease(keyCode);
 			
 			if(Character.isUpperCase(wordArr[idx])) //Release Shift
@@ -42,7 +44,7 @@ public class ConnectToPiTest {
 		
 		Robot rob;
 		Runtime r = Runtime.getRuntime();
-		Process p;
+		Process p = null; //...
 		
 		try {
 			p = r.exec("putty -load Pi");
@@ -61,10 +63,11 @@ public class ConnectToPiTest {
 		typeWord(pw, rob);
 		rob.keyPress(KeyEvent.VK_ENTER);
 		
-		//Navigate to folder
-		typeWord("cd Desktop", rob);
-		rob.keyPress(KeyEvent.VK_ENTER);
-		
 		Thread.sleep(500);
+		
+		typeWord("java -jar HalfTest3.jar", rob);
+		rob.keyPress(KeyEvent.VK_ENTER);
+
+		while(p.isAlive()) {/*In case we want to run any cleanup code*/};
 	}
 }

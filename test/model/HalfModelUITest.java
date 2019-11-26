@@ -29,7 +29,7 @@ public class HalfModelUITest extends JFrame implements KeyListener, ActionListen
 	 * PinController from being initialized, and prevents the drivers for *
 	 * GPIO pins from being loaded (which most computers don't have)      *
 	 **********************************************************************/
-	private static final boolean RUNNING_ON_PI = false;
+	private static final boolean RUNNING_ON_PI = true;
 
 	private JPanel motorLeft, motorRight;
 	private JButton quit;
