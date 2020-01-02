@@ -6,21 +6,22 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="lib"/>
 	<classpathentry kind="src" path="assets"/>
 	<classpathentry kind="src" path="test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/5"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/junit.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-core.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-core-javadoc.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-core-sources.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-device.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-device-javadoc.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-device-sources.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-example.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-example-javadoc.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-example-sources.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-gpio-extension.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-gpio-extension-javadoc.jar"/>
-	<classpathentry kind="lib" path="C:/Users/i99sh/Desktop/pi4j-1.2/lib/pi4j-gpio-extension-sources.jar"/>
+	<classpathentry kind="lib" path="lib/junit.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-core-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-core-sources.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-core.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-device-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-device-sources.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-device.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-example-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-example-sources.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-example.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-gpio-extension-javadoc.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-gpio-extension-sources.jar"/>
+	<classpathentry kind="lib" path="lib/pi4j-gpio-extension.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
