@@ -18,7 +18,7 @@ public class ConnectToPiTest {
 			
 			keyCode = KeyEvent.getExtendedKeyCodeForChar(wordArr[idx]);
 			
-			if(keyCode == KeyEvent.VK_UNDEFINED)
+			if(keyCode == KeyEvent.VK_UNDEFINED) //Error Handle
 				continue;
 			
 			if(Character.isUpperCase(wordArr[idx])) //Hold Shift

@@ -23,5 +23,9 @@
 	<classpathentry kind="lib" path="lib/pi4j-gpio-extension-javadoc.jar"/>
 	<classpathentry kind="lib" path="lib/pi4j-gpio-extension-sources.jar"/>
 	<classpathentry kind="lib" path="lib/pi4j-gpio-extension.jar"/>
+	<classpathentry kind="lib" path="lib/customizer.jar"/>
+	<classpathentry kind="lib" path="lib/jmf.jar"/>
+	<classpathentry kind="lib" path="lib/mediaplayer.jar"/>
+	<classpathentry kind="lib" path="lib/multiplayer.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
