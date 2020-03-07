@@ -11,6 +11,11 @@ public class HalfModel {
 	private HalfPinController controller;
 	private boolean updatePins;
 	
+	private static final int LEFT = 0;
+	private static final int UP = 1;
+	private static final int RIGHT = 2;
+	private static final int DOWN = 3;
+	
 	public void shutdownController() {
 		if(updatePins) 
 			controller.shutdown();
@@ -29,6 +34,21 @@ public class HalfModel {
 		this.updatePins = updatingPins;
 		if(updatePins) 
 			controller = new HalfPinController();
+	}
+	
+	/**
+	 * Throws IAE if state.length != 4
+	 * @param state State to set model to.
+	 */
+	public void updateKBStateOnDirectCall(boolean[] state) {
+		
+		if(state.length != 4)
+			throw new IllegalArgumentException();
+		
+		leftHeld = state[LEFT];
+		rightHeld = state[RIGHT];
+		upHeld = state[UP];
+		downHeld = state[DOWN];
 	}
 	
 	public void updateKBStateOnKeyPress(KeyEvent e) {
