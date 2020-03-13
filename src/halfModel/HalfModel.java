@@ -4,12 +4,28 @@ import java.awt.event.KeyEvent;
 
 import gpio.HalfPinController;
 
+/**
+ * Interfaces two motors with the current keyboard state.
+ * 
+ * @author J2759
+ */
 public class HalfModel {
 
+	/** Keyboard State */
 	private boolean leftHeld, rightHeld, upHeld, downHeld;
+	
+	/** Motor Logic */
 	private HalfBridge leftMotor, rightMotor;
+	
+	/** Enables / Disables GPIO pins */
 	private HalfPinController controller;
-	private boolean updatePins;
+	
+	/**
+	 * If the code is being run on an A.R.G.U.S unit, then this value will be set to 'true', and
+	 * the electrical components of the system will update on every tick. Otherwise, the electronics
+	 * will not initialize.
+	 */
+	private boolean updatePins; 
 	
 	private static final int LEFT = 0;
 	private static final int UP = 1;
@@ -55,26 +71,28 @@ public class HalfModel {
 		int keycode = e.getKeyCode();
 		
 		if(keycode == KeyEvent.VK_W)
-			setUpHeld(true);
+			upHeld = true;
 		else if(keycode == KeyEvent.VK_S)
-			setDownHeld(true);
+			downHeld = true;
 		else if(keycode == KeyEvent.VK_A)
-			setLeftHeld(true);
+			leftHeld = true;
 		else if(keycode == KeyEvent.VK_D)
-			setRightHeld(true);
+			rightHeld = true;
 	}
 	
 	public void updateKBStateOnKeyRelease(KeyEvent e) {
 		int keycode = e.getKeyCode();
 		
 		if(keycode == KeyEvent.VK_W)
-			setUpHeld(false);
+			
+		if(keycode == KeyEvent.VK_W)
+			upHeld = false;
 		else if(keycode == KeyEvent.VK_S)
-			setDownHeld(false);
+			downHeld = false;
 		else if(keycode == KeyEvent.VK_A)
-			setLeftHeld(false);
+			leftHeld = false;
 		else if(keycode == KeyEvent.VK_D)
-			setRightHeld(false);
+			rightHeld = false;
 	}
 	
 	public void update() {
@@ -122,42 +140,40 @@ public class HalfModel {
 	}
 	
 	/** 
-	 * For easy debug of returned boolean array
+	 * A string representation of both motors in the model.
+	 * 
+	 * @return a String array of both motor's toString() call
 	 */
 	public String[] getMotorStateString() {
 		return new String[] {leftMotor.toString(),rightMotor.toString()};
 	}
 	
 	/**
-	 * Is the model working?
+	 * Set the 'inverted' property the right motor of the model.
+	 * 
+	 * @param invert Inverted state to set
+	 */
+	public void invertLeft(boolean invert) {
+		this.leftMotor.setIsInverted(invert);
+	}
+	
+	/**
+	 * Set the 'inverted' property the right motor of the model.
+	 * 
+	 * @param invert Inverted state to set
+	 */
+	public void invertRight(boolean invert) {
+		this.rightMotor.setIsInverted(invert);
+	}
+	
+	/**
+	 * Returns a string representation of the model's keyboard state.
+	 * 
+	 * @return The model's keyboard state.
 	 */
 	@Override
 	public String toString() {
 		return "Left: " + leftHeld + ", Right: " + rightHeld + ", Down: " + 
 				downHeld + ", Up: " + upHeld; 
-	}
-
-	public void setLeftHeld(boolean leftHeld) {
-		this.leftHeld = leftHeld;
-	}
-
-	public void setRightHeld(boolean rightHeld) {
-		this.rightHeld = rightHeld;
-	}
-
-	public void setUpHeld(boolean upHeld) {
-		this.upHeld = upHeld;
-	}
-
-	public void setDownHeld(boolean downHeld) {
-		this.downHeld = downHeld;
-	}
-	
-	public void invertLeft(boolean invert) {
-		this.leftMotor.setIsInverted(invert);
-	}
-	
-	public void invertRight(boolean invert) {
-		this.rightMotor.setIsInverted(invert);
 	}
 }

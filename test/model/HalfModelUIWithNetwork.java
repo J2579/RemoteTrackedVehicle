@@ -27,7 +27,12 @@ import halfModel.HalfModel;
 import ui.DoubleBufferedCanvas;
 import util.SBAssist;
 
-
+/**
+ * GUI Controller / Server for the A.R.G.U.S system. This could probably be split up into
+ * two classes, with the server itself being another model as part of the MVC.
+ * 
+ * @author J2579
+ */
 @SuppressWarnings("serial")
 public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 
@@ -39,42 +44,111 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 	 **********************************************************************/
 	private static final boolean RUNNING_ON_PI = false;
 
-	private ServerSocket server;
-	private Socket connection;
-	private BufferedReader input;
-	private long timeout = 0;
+	private ServerSocket server; //Server
+	private Socket connection; //Socket connected to the client
+	private BufferedReader input; //Read in data from client. Encapsulates the raw bytestream
+	private boolean end = false; //observe connection
 	private JLabel status; //get reference to connection status
 	
-	private JPanel motorLeft, motorRight;
-	private JButton quit;
-	private ModelWindow leftMotorWindow, rightMotorWindow;
-	private HalfModel model;
+	private JPanel motorLeft, motorRight; //Panel to hold pin gfx
+	private JButton quit; //Exit
+	private ModelWindow leftMotorWindow, rightMotorWindow; //Graphical representation of pin states
+	private HalfModel model; //Logic for pin state
 	
-	private Timer tick;
+	private Timer tick; //Event tick
 	
-	private static final int WIDTH = 800;
-	private static final int HEIGHT = 450;
+	private static final int WIDTH = 800;  //Window width
+	private static final int HEIGHT = 450; //Window height
 	
-	public static void main(String[] args) throws IOException {
-		HalfModelUIWithNetwork test = new HalfModelUIWithNetwork();
-		test.run();
+	/**
+	 * 'Usage' message displayed when the user inputs an invalid number
+	 * of command-line arguments.
+	 */
+	private static void usage() {
+		System.err.println("usage: Server <port>\nusage: Server");
+		System.exit(1);
 	}
 	
-	public void run() throws IOException {
+	/**
+	 * Main method. Initializes the Server connection as well as the GUI Frame.
+	 * @param args args[0] = Port to host server on.
+	 * @throws IOException If an I/O error occurs while creating the server
+	 */
+	public static void main(String[] args) throws IOException {
+		HalfModelUIWithNetwork test = new HalfModelUIWithNetwork();
+		int port = parsePort(args);
+		test.setup(port);
+	}
+	
+	/**
+	 * Given the command-line arguments, either attempts to parse a port from a JOptionPane (0 arg),
+	 * or read directly from the command line (1 arg). If the user enters an invalid port in the JOptionPane,
+	 * they are prompted to re-input; However, an invalid cmd arg causes the program to exit with an error message.
+	 * 
+	 * @param args The command-line arguments passed into main()
+	 * @return The specified port number to listen for connections on
+	 */
+	private static int parsePort(String[] args) {
+
+		int port = -1;
 		
-		setTitle("Half-H Bridge Model Test");
+		if(args.length == 0) { //
+			String portstr; //scoping
+			do {
+				portstr = JOptionPane.showInputDialog("Enter Port Number","3333");
+			} while((port = validatePort(portstr)) == -1);	
+		}
+		else if(args.length == 1) {
+			if((port = validatePort(args[0])) == -1)
+				usage();
+		}
+		else
+			usage();
+		
+		return port;
+	}
+
+	/**
+	 * Validates a port number. If the string is a number n,
+	 * where 0 <= n < 65536, the number is returned as an integer.
+	 * Otherwise, returns -1.
+	 * 
+	 * @param portstr The port to validate
+	 * @return The parsed port number, if valid. Otherwise, returns -1 on failure.
+	 */
+	private static int validatePort(String portstr) {
+		
+		int port;
+		
+		try {
+			port = Integer.parseInt(portstr); 
+		}
+		catch(NumberFormatException e) {
+			return -1;
+		}
+		if(port < 0 || port > 65535)
+			port = -1;
+		
+		return port;
+	}
+
+	/**
+	 * Initializes the Frame, Graphics Window, and Server Connection
+	 * @param port Port to listen for a client connection on
+	 * @throws IOException If an IOError occurs when creating the server
+	 */
+	public void setup(int port) throws IOException {
+		
+		setTitle("Half-H Bridge Model Test"); //Frame Properties
 		setSize(WIDTH,HEIGHT);
 		setLocation(0,0);
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
-		
 		setLayout(new GridLayout(1, 3));
 		
-		model = new HalfModel(RUNNING_ON_PI); //Init model
-		
-		
+		model = new HalfModel(RUNNING_ON_PI); //Electronic Model
 		model.invertLeft(true);
 		
-		motorLeft = new JPanel();
+		motorLeft = new JPanel(); //Electronic Model Graphics
 		leftMotorWindow = new ModelWindow((WIDTH / 3), HEIGHT);
 		leftMotorWindow.isLeftMotor(true);
 		motorLeft.add(leftMotorWindow);
@@ -84,7 +158,7 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 		rightMotorWindow.isLeftMotor(false);
 		motorRight.add(rightMotorWindow);
 		
-		JPanel quitPnl = new JPanel();
+		JPanel quitPnl = new JPanel(); //More Frame Components
 		quitPnl.setLayout(new GridLayout(2,1));
 		quit = new JButton("Exit");
 		quit.addActionListener(this);
@@ -93,7 +167,7 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 		status = new JLabel("Status: Waiting for connection...", SwingConstants.CENTER);
 		quitPnl.add(status);
 		
-		//If the window is closed in a non-standard way, still clear the pin states
+		//Shutdown behavior
 		addWindowListener(new WindowAdapter() {
 
 			@Override
@@ -104,46 +178,42 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 				
 		});
 		
-		add(motorLeft);
+		add(motorLeft); //Add elements to the frame
 		add(motorRight);
 		add(quitPnl);
-		setVisible(true); //TODO: add "waiting for connection"
+		setVisible(true); 
 		
-		leftMotorWindow.createAndSetBuffer();
+		leftMotorWindow.createAndSetBuffer(); //Finalize graphics
 		rightMotorWindow.createAndSetBuffer();
 
-		startServerAndWaitForConnection();		
+		startServerAndWaitForConnection(port); //Set up server	
 		status.setText("Status: Connected!");
 		
 		
-		tick = new Timer(17, this);
+		tick = new Timer(17, this); //Event tick
 		tick.setRepeats(true);
 		tick.start();
 	}
 
-	private void startServerAndWaitForConnection() throws IOException {
-		
-		int port = -1;
-		do {
-			try {
-				port = Integer.parseInt(JOptionPane.showInputDialog("Enter Port Number","3333"));
-			}
-			catch(NumberFormatException e) {
-				port = -1;
-			}
-			if(port < 0 || port > 65535)
-				port = -1;
-		} while(port == -1);
-		
+	/**
+	 * Starts the server, and waits for a piece of Client code to make the connection.
+	 * The InputStream is then wrapped in a BufferedReader because bytes are hard
+	 * 
+	 * @param port The port to listen for a connection on
+	 * @throws IOException If an I/O ERROR occurs when setting up the Socket connection
+	 */
+	private void startServerAndWaitForConnection(int port) throws IOException {
+
 		server = new ServerSocket(port);
 		
 		try {
-			connection = server.accept();
+			connection = server.accept(); //BLOCKING!!!
 		}
 		catch(SocketException e) {
 			/*If this exception was thrown, the program was shut down while waiting
 			for the client to connect. This just means that the server let us know
-			an error occurred - nothing to worry about. */
+			an error occurred when trying to create the connection- nothing to worry 
+			about! */
 		}
 		
 		if(connection != null) {
@@ -152,6 +222,9 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 		}
 	}
 
+	/**
+	 * Shuts down the electronic pins, as well as the server connection.
+	 */
 	private void shutdown() {
 		model.shutdownController();
 		
@@ -164,37 +237,42 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 		catch(IOException e) { /*...*/ }
 	}
 	
+	/**
+	 * Updates the graphics, model, and connection on tick.
+	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource().equals(tick)) {
 			
-			model.update();
-			leftMotorWindow.update();
+			model.update(); //Update pin model
+			
+			leftMotorWindow.update(); //Update graphics
 			rightMotorWindow.update();
 			
 			
-			//If there is information readable inside the stream...
-			String line = null;
+			//Update connection - READ
+			
+			String line = null; //Get input from client
 			try {
 				line = input.readLine();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 			
-			//Now, parse the information
+			//Is the client sending us information?
 			if(line != null) {
-				timeout = 0;
-				model.updateKBStateOnDirectCall(SBAssist.atob(line));
-				System.out.println(line); //debug
+				
+				if(line.startsWith("!")) { //special information header
+					if(line.substring(1).equals("END_CONNECTION")) //Client closed connection
+						end = true;
+				}
+				else //Client just sent tread movement data
+					model.updateKBStateOnDirectCall(SBAssist.atob(line));
+				
 			}
-			else
-				++timeout;
 			
-			
-			/*If we determined that the connection has been closed, time out. We'll say that if the client hasn't
-			 * sent us any data in 300 ticks (where 60 ticks = 1 second), then we're good to stop.
-			 */
-			if(timeout > 300) { //TODO: Why does this not call when the client closes the socket?
+			//Shutdown the timer, and set all pins to off if the connection has been closed
+			if(end) {
 				tick.stop(); //Stop updating the model
 				model.updateKBStateOnDirectCall(new boolean[] {false, false, false, false});
 				status.setText("Status: Disconnected.");
@@ -202,12 +280,18 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 				
 			}
 		}
-		else if(e.getSource().equals(quit)) {
+		
+		else if(e.getSource().equals(quit)) { //Exit button
 			shutdown();
 			System.exit(0);
 		}
 	}
 	
+	/**
+	 * Instantiation of DoubleBufferedCanvas. Made for easily drawing motor data to the screen.
+	 * @author i99sh
+	 *
+	 */
 	private class ModelWindow extends DoubleBufferedCanvas {
 
 		private boolean left; //Use the left (true) or right (false) motor
@@ -220,6 +304,9 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 			this.left = left;
 		}
 
+		/**
+		 * Draw the state of the motor pins to the screen
+		 */
 		@Override
 		public void draw(Graphics g) {
 			

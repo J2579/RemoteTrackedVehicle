@@ -1,7 +1,21 @@
 package util;
 
+/**
+ * Assists in conversion between String and boolean array.
+ * 
+ * @author J2579
+ */
 public class SBAssist {
 	
+	/**
+	 * Converts a boolean array into a string literal.
+	 * The string begins and ends with "[" and "]", respectively, with
+	 * commas between every pair of values.
+	 * 
+	 * e.g. [true,false,true,true]
+	 * @param b Initial boolean array.
+	 * @return Converted string.
+	 */
 	public static String btoa(boolean[] b) {
 		String s = "[";
 		for(int idx = 0; idx < b.length; ++idx) {
@@ -12,7 +26,16 @@ public class SBAssist {
 	}	
 	
 	/**
-	* Parse boolean array from String. Return null on fail.
+	* Parse boolean array from String of form:
+	* [bool,bool,bool]
+	* 
+	* @param a The string to parse
+	* @throws IllegalArgumentException If:
+	* a is null
+	* a is empty
+	* a does not begin and end with "[" and "]", respectively.
+	* !(a.equals("true") || a.equals("false"))
+	* @return The parsed boolean array
 	*/
 	public static boolean[] atob(String a) {
 		if(a == null || a.isEmpty()) //string exists
@@ -35,6 +58,14 @@ public class SBAssist {
 		return cooked;
 	}
 	
+	/**
+	 * Parses a boolean value from a string. Value must
+	 * be "true" or "false", literal.
+	 * 
+	 * @param s The string to parse from
+	 * @throws IllegalArgumentException If !(s.equals("true") || s.equals("false"))
+	 * @return The parsed boolean value
+	 */
 	public static boolean parseBoolean(String s) {
 		if(s.equals("false"))
 			return false;

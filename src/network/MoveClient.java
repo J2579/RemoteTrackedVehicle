@@ -8,9 +8,12 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-
-import java.net.*;
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.ConnectException;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -19,55 +22,86 @@ import javax.swing.Timer;
 import ui.DoubleBufferedCanvas;
 import util.SBAssist;
 
+/**
+ * Passes keyboard information from the client to the A.R.G.U.S server, which is decoded and
+ * translated into electrical impulses to the motors.
+ * 
+ * @author J2579
+ */
 @SuppressWarnings("serial")
 public class MoveClient extends JFrame implements KeyListener, ActionListener {
 
-	private DrawWindow gfx;
-	private Timer tick;
+	private DrawWindow gfx; //Graphical Window
+	private Timer tick; //Window / Key Event Update Timer
 	
-	private static String host;
-	private static int port;
-	private static Socket connection;
-	private static PrintWriter output;
+	private static String host; //IP Address of server to connect to
+	private static int port; //Port to connect to server on
+	private static Socket connection; //Socket to read/write data from
+	private static PrintWriter output; //Wraps the socket, allowing String I/O
 	
-	private boolean[] model = new boolean[4]; //too lazy to write an actual class
-	private static final int LEFT = 0;
+	private boolean[] model = new boolean[4]; //Keyboard state
+	private static final int LEFT = 0; //...
 	private static final int UP = 1;
 	private static final int RIGHT = 2;
 	private static final int DOWN = 3;
 	
+	/**
+	 * Called if user specifies invalid number of command-line args.
+	 */
 	private static void usage() {
 		System.err.println("usage: MoveClient <ip> <port>");
 		System.exit(-1);
 	}
 	
+	/**
+	 * Parses IP and Port from command line args, then attempts to create a socket to
+	 * connect with the A.R.G.U.S server. Fails if the server is not currently running.
+	 * 
+	 * @param args args[0] = IP of server, args[1] = port
+	 * @throws IOException Signifies very bad things happened
+	 */
 	public static void main(String[] args) throws IOException {
 		
 		try { //Parse port 
 			if(args.length != 2) { usage(); }
 			host = args[0];
 			port = Integer.parseInt(args[1]);
-		} catch(Exception e) { usage(); }
-				
-		connection = new Socket(host, port);
-		OutputStream rawOutput = connection.getOutputStream();
-		output = new PrintWriter(rawOutput, true);			
+			connection = new Socket(host, port);
+		} catch(NumberFormatException e) { usage(); } //Port not a number
+		catch(ConnectException ce) { //Server not running
+			System.err.println("Could not connect to server...Check your connection, and try again.");
+			System.exit(1);
+		}
+		catch(UnknownHostException ue) { //IP address not an IP address
+			System.err.println("Bad / Malformed IP Address: " + host);
+			System.exit(1);
+		}
+		catch(IllegalArgumentException iae) { // Port < 0 || Port > 65535
+			System.err.println("Invalid Port: " + port);
+			System.exit(1);
+		}
+		
+		OutputStream rawOutput = connection.getOutputStream(); //Get the Socket's stream...
+		output = new PrintWriter(rawOutput, true); //...and wrap it in a PrintWriter
 			
 		MoveClient jsc = new MoveClient();
-		jsc.run();
+		jsc.setupGraphics();
 	}
 	
-	private void run() {
-		setSize(400,500);
+	/**
+	 * Configures the graphics / key-bindings of the Movement Client
+	 */
+	private void setupGraphics() {
+		setSize(400,500); //Frame
 		setTitle("Movement Client");
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		
-		gfx = new DrawWindow(400, 400);
+		gfx = new DrawWindow(400, 400); //Window
 		add(gfx);
 		setVisible(true);
 		gfx.createAndSetBuffer();
 		
-		JButton focus = new JButton("...");
+		JButton focus = new JButton("..."); //Something click-able to refocus the window.
 		add(focus);
 		
 		addWindowListener(new WindowAdapter() {
@@ -76,6 +110,7 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 			public void windowClosing(WindowEvent e) {
 				
 				try {
+					output.println("!END_CONNECTION"); //Tell server we dc'd.
 					connection.close();
 					System.out.println("Connection closed.");
 				}
@@ -89,7 +124,7 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 		addKeyListener(this);
 		
 		
-		tick = new Timer(17, this);
+		tick = new Timer(17, this); //Write to socket / Update window on timer. 1000ms/s * tick/17ms ~ 60 tick/s
 		tick.setRepeats(true);
 		tick.start();
 
@@ -97,16 +132,21 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 	}
 	
 
+	/**
+	 * Updates the model / connection on event tick.
+	 */
 	@Override
 	public void actionPerformed(ActionEvent ae) {
 		if(ae.getSource().equals(tick)) {
-			gfx.update();
-
-			//Send the information to the server's outputstream
-			output.println(SBAssist.btoa(model));
+			gfx.update(); //Update graphical representation of keys.
+			output.println(SBAssist.btoa(model)); //Send the keyboard state to the server.
 		}
 	}
 
+	/**
+	 * Updates keyboard state on key press.
+	 */
+	@Override
 	public void keyPressed(KeyEvent e) {
 		int keycode = e.getKeyCode();
 		
@@ -120,6 +160,10 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 			model[RIGHT] = true;
 	}
 	
+	/**
+	 * Updates keyboard state on key release.
+	 */
+	@Override
 	public void keyReleased(KeyEvent e) {
 		int keycode = e.getKeyCode();
 		
@@ -133,15 +177,28 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 			model[RIGHT] = false;
 	}
 	
+	/**
+	 * Does nothing.
+	 */
 	@Override
 	public void keyTyped(KeyEvent e) {}
 	
+	/**
+	 * Implementation of DoubleBufferedCanvas. Draw method displays green
+	 * squares in the cardinal directions which correspond to keyboard presses.
+	 * 
+	 * @author J2579
+	 */
 	private class DrawWindow extends DoubleBufferedCanvas {
 
 		public DrawWindow(int width, int height) {
 			super(width, height);
 		}
 
+		/**
+		 * Assume NWSE = WASD. Key presses are illuminated by green squares,
+		 * BG is default black.
+		 */
 		@Override
 		public void draw(Graphics g) {
 			g.setColor(Color.GREEN);

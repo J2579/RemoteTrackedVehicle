@@ -6,7 +6,6 @@ import javax.swing.JFrame;
 import java.awt.Component;
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import javax.media.CannotRealizeException;
 import javax.media.Manager;
