@@ -1,20 +1,15 @@
-package model;
+package ui;
 
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -24,8 +19,7 @@ import javax.swing.SwingConstants;
 import javax.swing.Timer;
 
 import halfModel.HalfModel;
-import ui.DoubleBufferedCanvas;
-import util.SBAssist;
+import network.Server;
 
 /**
  * GUI Controller / Server for the A.R.G.U.S system. This could probably be split up into
@@ -34,7 +28,7 @@ import util.SBAssist;
  * @author J2579
  */
 @SuppressWarnings("serial")
-public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
+public class HalfModelUIWithNetwork extends JFrame implements ActionListener, KeyListener {
 
 	
 	/**********************************************************************
@@ -43,11 +37,15 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 	 * GPIO pins from being loaded (which most computers don't have)      *
 	 **********************************************************************/
 	private static final boolean RUNNING_ON_PI = false;
+	
+	/*******************************************************************
+	 * If we want to test functionality of A.R.G.U.S without a client, *
+	 * then we can set this to 'true' to directly control the motor    *
+	 * state from the program.										   *
+	 *******************************************************************/
+	private static final boolean FORCE_DISABLE_CONNECTION = true;
 
-	private ServerSocket server; //Server
-	private Socket connection; //Socket connected to the client
-	private BufferedReader input; //Read in data from client. Encapsulates the raw bytestream
-	private boolean end = false; //observe connection
+	private Server server;
 	private JLabel status; //get reference to connection status
 	
 	private JPanel motorLeft, motorRight; //Panel to hold pin gfx
@@ -76,60 +74,7 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 	 */
 	public static void main(String[] args) throws IOException {
 		HalfModelUIWithNetwork test = new HalfModelUIWithNetwork();
-		int port = parsePort(args);
-		test.setup(port);
-	}
-	
-	/**
-	 * Given the command-line arguments, either attempts to parse a port from a JOptionPane (0 arg),
-	 * or read directly from the command line (1 arg). If the user enters an invalid port in the JOptionPane,
-	 * they are prompted to re-input; However, an invalid cmd arg causes the program to exit with an error message.
-	 * 
-	 * @param args The command-line arguments passed into main()
-	 * @return The specified port number to listen for connections on
-	 */
-	private static int parsePort(String[] args) {
-
-		int port = -1;
-		
-		if(args.length == 0) { //
-			String portstr; //scoping
-			do {
-				portstr = JOptionPane.showInputDialog("Enter Port Number","3333");
-			} while((port = validatePort(portstr)) == -1);	
-		}
-		else if(args.length == 1) {
-			if((port = validatePort(args[0])) == -1)
-				usage();
-		}
-		else
-			usage();
-		
-		return port;
-	}
-
-	/**
-	 * Validates a port number. If the string is a number n,
-	 * where 0 <= n < 65536, the number is returned as an integer.
-	 * Otherwise, returns -1.
-	 * 
-	 * @param portstr The port to validate
-	 * @return The parsed port number, if valid. Otherwise, returns -1 on failure.
-	 */
-	private static int validatePort(String portstr) {
-		
-		int port;
-		
-		try {
-			port = Integer.parseInt(portstr); 
-		}
-		catch(NumberFormatException e) {
-			return -1;
-		}
-		if(port < 0 || port > 65535)
-			port = -1;
-		
-		return port;
+		test.setup(args);
 	}
 
 	/**
@@ -137,7 +82,16 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 	 * @param port Port to listen for a client connection on
 	 * @throws IOException If an IOError occurs when creating the server
 	 */
-	public void setup(int port) throws IOException {
+	public void setup(String[] args) throws IOException {
+		
+		//Set up server
+		server = new Server();
+		
+		if(!FORCE_DISABLE_CONNECTION) {
+			if(!server.setUpPortFromCMDArgs(args)) //port
+				usage();
+		}
+		
 		
 		setTitle("Half-H Bridge Model Test"); //Frame Properties
 		setSize(WIDTH,HEIGHT);
@@ -186,8 +140,18 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 		leftMotorWindow.createAndSetBuffer(); //Finalize graphics
 		rightMotorWindow.createAndSetBuffer();
 
-		startServerAndWaitForConnection(port); //Set up server	
-		status.setText("Status: Connected!");
+		if(!FORCE_DISABLE_CONNECTION) {
+			if(!server.startServerAndWaitForConnection()) { //Set up server	
+				shutdown();
+				System.exit(1);
+			}
+			status.setText("Status: Connected!");
+		}
+		else {
+			addKeyListener(this);
+			status.setText("Status: Connection Disabled [DEBUG]");
+			requestFocus();
+		}
 		
 		
 		tick = new Timer(17, this); //Event tick
@@ -196,46 +160,34 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 	}
 
 	/**
-	 * Starts the server, and waits for a piece of Client code to make the connection.
-	 * The InputStream is then wrapped in a BufferedReader because bytes are hard
-	 * 
-	 * @param port The port to listen for a connection on
-	 * @throws IOException If an I/O ERROR occurs when setting up the Socket connection
-	 */
-	private void startServerAndWaitForConnection(int port) throws IOException {
-
-		server = new ServerSocket(port);
-		
-		try {
-			connection = server.accept(); //BLOCKING!!!
-		}
-		catch(SocketException e) {
-			/*If this exception was thrown, the program was shut down while waiting
-			for the client to connect. This just means that the server let us know
-			an error occurred when trying to create the connection- nothing to worry 
-			about! */
-		}
-		
-		if(connection != null) {
-			InputStream rawInput = connection.getInputStream();
-			input = new BufferedReader(new InputStreamReader(rawInput));
-		}
-	}
-
-	/**
 	 * Shuts down the electronic pins, as well as the server connection.
 	 */
 	private void shutdown() {
 		model.shutdownController();
-		
-		try {
-			if(server != null)
-				server.close();
-			if(connection != null)
-				connection.close();
-		}
-		catch(IOException e) { /*...*/ }
+		server.shutdown();
 	}
+	
+	/**
+	 * Updates the model on key-press directly. Used for debugging.
+	 */
+	@Override
+	public void keyPressed(KeyEvent e) {
+		model.updateKBStateOnKeyPress(e);
+	}
+
+	/**
+	 * Updates the model on key release directly. Used for debugging.
+	 */
+	@Override
+	public void keyReleased(KeyEvent e) {
+		model.updateKBStateOnKeyRelease(e);
+	}
+
+	/**
+	 * Required by interface.
+	 */
+	@Override
+	public void keyTyped(KeyEvent e) {}
 	
 	/**
 	 * Updates the graphics, model, and connection on tick.
@@ -245,42 +197,27 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 		if(e.getSource().equals(tick)) {
 			
 			model.update(); //Update pin model
-			
 			leftMotorWindow.update(); //Update graphics
 			rightMotorWindow.update();
 			
-			
-			//Update connection - READ
-			
-			String line = null; //Get input from client
-			try {
-				line = input.readLine();
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-			
-			//Is the client sending us information?
-			if(line != null) {
+			if(!FORCE_DISABLE_CONNECTION) {
+				//Update connection - READ
+				String line = server.getNextLine(); //Get input from client
 				
-				if(line.startsWith("!")) { //special information header
-					if(line.substring(1).equals("END_CONNECTION")) //Client closed connection
-						end = true;
+				
+				//Is the client sending us information?
+				if(line != null) 
+					model.updateKBStateOnDirectCall(line);
+				
+				//Shutdown the timer, and set all pins to off if the connection has been closed
+				if(server.getIsStopped()) {
+					tick.stop(); //Stop updating the model
+					model.clearAll();
+					status.setText("Status: Disconnected.");
+					JOptionPane.showMessageDialog(null, "Connection closed by client...");
 				}
-				else //Client just sent tread movement data
-					model.updateKBStateOnDirectCall(SBAssist.atob(line));
-				
-			}
-			
-			//Shutdown the timer, and set all pins to off if the connection has been closed
-			if(end) {
-				tick.stop(); //Stop updating the model
-				model.updateKBStateOnDirectCall(new boolean[] {false, false, false, false});
-				status.setText("Status: Disconnected.");
-				JOptionPane.showMessageDialog(null, "Connection closed by client...");
-				
 			}
 		}
-		
 		else if(e.getSource().equals(quit)) { //Exit button
 			shutdown();
 			System.exit(0);
@@ -289,8 +226,8 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener {
 	
 	/**
 	 * Instantiation of DoubleBufferedCanvas. Made for easily drawing motor data to the screen.
-	 * @author i99sh
-	 *
+	 * 
+	 * @author J2579
 	 */
 	private class ModelWindow extends DoubleBufferedCanvas {
 

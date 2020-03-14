@@ -3,6 +3,7 @@ package halfModel;
 import java.awt.event.KeyEvent;
 
 import gpio.HalfPinController;
+import util.SBAssist;
 
 /**
  * Interfaces two motors with the current keyboard state.
@@ -32,11 +33,21 @@ public class HalfModel {
 	private static final int RIGHT = 2;
 	private static final int DOWN = 3;
 	
+	/**
+	 * Shuts down the electronic pins, if the program is running on an A.R.G.U.S System
+	 * (e.g. not testing basic functionality on other hardware)
+	 */
 	public void shutdownController() {
 		if(updatePins) 
 			controller.shutdown();
 	}
 	
+	/**
+	 * Sets up the model, and the two bridges. If the program is not running
+	 * on an A.R.G.U.S system (set by updatingPins), the electrical components /
+	 * controllers will not initialize
+	 * @param updatingPins Are there electronic pins connected to the program to update?
+	 */
 	public HalfModel(boolean updatingPins) {
 	
 		leftHeld = false;
@@ -53,10 +64,15 @@ public class HalfModel {
 	}
 	
 	/**
-	 * Throws IAE if state.length != 4
-	 * @param state State to set model to.
+	 * Updates the keyboard state based on a stringified boolean array,
+	 * send by the client.
+	 * 
+	 * @param statestr The boolean array representing the client's keyboard state
+	 * @throws IllegalAr
 	 */
-	public void updateKBStateOnDirectCall(boolean[] state) {
+	public void updateKBStateOnDirectCall(String statestr) {
+	
+		boolean[] state = SBAssist.atob(statestr);
 		
 		if(state.length != 4)
 			throw new IllegalArgumentException();
@@ -67,6 +83,21 @@ public class HalfModel {
 		downHeld = state[DOWN];
 	}
 	
+	/**
+	 * Sets the keyboard state to all false
+	 */
+	public void clearAll() {
+		leftHeld = false;
+		rightHeld = false;
+		upHeld = false;
+		downHeld = false;
+	}
+	
+	/**
+	 * Updates the keyboard state based on Key Input. Used for server-side functionality
+	 * testing without a client.
+	 * @param e KeyEvent generated from key release
+	 */
 	public void updateKBStateOnKeyPress(KeyEvent e) {
 		int keycode = e.getKeyCode();
 		
@@ -80,11 +111,14 @@ public class HalfModel {
 			rightHeld = true;
 	}
 	
+	/**
+	 * Updates the keyboard state based on Key Input. Used for server-side functionality
+	 * testing without a client.
+	 * @param e KeyEvent generated from keypress
+	 */
 	public void updateKBStateOnKeyRelease(KeyEvent e) {
 		int keycode = e.getKeyCode();
-		
-		if(keycode == KeyEvent.VK_W)
-			
+
 		if(keycode == KeyEvent.VK_W)
 			upHeld = false;
 		else if(keycode == KeyEvent.VK_S)
@@ -95,6 +129,9 @@ public class HalfModel {
 			rightHeld = false;
 	}
 	
+	/**
+	 * Updates the bridges respective to the state of the keyboard.
+	 */
 	public void update() {
 		
 		if((leftHeld && rightHeld) || (upHeld && downHeld)) { //Contradictory input
@@ -135,6 +172,10 @@ public class HalfModel {
 					leftMotor.getIsEnabled(), rightMotor.getIsEnabled());
 	}
 	
+	/**
+	 * Returns the boolean pin-state of each bridge in the model
+	 * @return The state of each bridge in the model
+	 */
 	public boolean[][] getMotorState() {
 		return new boolean[][] {leftMotor.getMotorState(), rightMotor.getMotorState()};
 	}

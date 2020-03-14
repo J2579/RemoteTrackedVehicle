@@ -30,11 +30,7 @@ public class SBAssist {
 	* [bool,bool,bool]
 	* 
 	* @param a The string to parse
-	* @throws IllegalArgumentException If:
-	* a is null
-	* a is empty
-	* a does not begin and end with "[" and "]", respectively.
-	* !(a.equals("true") || a.equals("false"))
+	* @throws IllegalArgumentException If: a is null, a is empty, a does not begin and end with "[" and "]", respectively, the array values are not 'true' or 'false' literal
 	* @return The parsed boolean array
 	*/
 	public static boolean[] atob(String a) {
