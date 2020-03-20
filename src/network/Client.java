@@ -164,17 +164,17 @@ public class Client extends JFrame implements KeyListener, ActionListener {
 			byte[] data = new byte[READ_SIZE];
 			try {
 				int numRead = input.read(data);
-				if(Arrays.equals(data, Arrays.copyOf(data, 10))) {
-					if(numRead != -1 && Arrays.copyOf(data, 10) != EXIT_HEADER)
+				if(!Arrays.equals(Arrays.copyOf(data, EXIT_HEADER.length), EXIT_HEADER)) {
+					if(numRead != -1)
 						fs.write(data, 0, numRead); //Temp
 					log.println(data + ": " + numRead + " bytes.");
 				}
 				else {
 					shutdown();
-					JOptionPane.showMessageDialog(null, "Connection closed by client...");
+					JOptionPane.showMessageDialog(null, "Connection closed by Server.");
 					System.exit(0);
 				}
-			} catch(IOException e) {
+			} catch(IOException e) { //lazy catch-all
 				e.printStackTrace();
 			}
 		}
