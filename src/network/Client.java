@@ -16,9 +16,11 @@ import java.io.PrintWriter;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.Timer;
 
 import ui.DoubleBufferedCanvas;
@@ -50,6 +52,7 @@ public class Client extends JFrame implements KeyListener, ActionListener {
 	private static final int UP = 1;
 	private static final int RIGHT = 2;
 	private static final int DOWN = 3;
+	public static final byte[] EXIT_HEADER = new byte[] {65, 108, 101, 120, 97, 32, 84, 97, 115, 99, 104, 101, 114};
 	
 	/**
 	 * Called if user specifies invalid number of command-line args.
@@ -121,17 +124,13 @@ public class Client extends JFrame implements KeyListener, ActionListener {
 			public void windowClosing(WindowEvent e) {
 				
 				try {
-					output.println("!END_CONNECTION"); //Tell server we dc'd.
-					connection.close();
-					fs.close();
-					log.close();
+					shutdown();
 					System.out.println("Connection closed.");
 				}
 				catch(IOException ioe) {/*...*/}
 				
 				super.windowClosing(e);
 			}
-			
 		});
 		
 		addKeyListener(this);
@@ -145,6 +144,13 @@ public class Client extends JFrame implements KeyListener, ActionListener {
 	}
 	
 
+	private void shutdown() throws IOException{
+		output.println("!END_CONNECTION"); //Tell server we dc'd.
+		connection.close();
+		fs.close();
+		log.close();
+	}
+	
 	/**
 	 * Updates the model / connection on event tick.
 	 */
@@ -158,10 +164,16 @@ public class Client extends JFrame implements KeyListener, ActionListener {
 			byte[] data = new byte[READ_SIZE];
 			try {
 				int numRead = input.read(data);
-				if(numRead != -1)
-					fs.write(data, 0, numRead); //Temp
-				
-				log.println(data + ": " + numRead + " bytes.");
+				if(Arrays.equals(data, Arrays.copyOf(data, 10))) {
+					if(numRead != -1 && Arrays.copyOf(data, 10) != EXIT_HEADER)
+						fs.write(data, 0, numRead); //Temp
+					log.println(data + ": " + numRead + " bytes.");
+				}
+				else {
+					shutdown();
+					JOptionPane.showMessageDialog(null, "Connection closed by client...");
+					System.exit(0);
+				}
 			} catch(IOException e) {
 				e.printStackTrace();
 			}

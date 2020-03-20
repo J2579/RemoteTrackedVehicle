@@ -130,7 +130,10 @@ public class Server {
 	
 	public void write(byte[] data, int len) {
 		try {
-			output.write(data, 0, len);
+			if(!getIsStopped())
+				output.write(data, 0, len);
+			else
+				output.write(Client.EXIT_HEADER, 0, Client.EXIT_HEADER.length); 
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -149,6 +152,14 @@ public class Server {
 	}
 	
 	public void shutdown() {
+		
+		stop(); //Send any remaining data we need across the connection
+		try {
+			Thread.sleep(200);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		
 		try {
 			if(server != null)
 				server.close();

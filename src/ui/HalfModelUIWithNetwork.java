@@ -167,7 +167,7 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 
 	private void beginCameraTick() throws IOException {
 		Runtime r = Runtime.getRuntime();
-		Process p = r.exec("raspivid -t 0 -w 300 -h 300 -o -");
+		Process p = r.exec("raspivid -t 0 -w 300 -h 300 -n -o -");
 		cameraDataStream = p.getInputStream();
 	}
 
