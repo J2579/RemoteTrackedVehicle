@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
@@ -16,6 +17,7 @@ public class Server {
 	private Socket connection; //Socket connected to the client
 	private int port;
 	private BufferedReader input; //Read in data from client. Encapsulates the raw bytestream
+	private OutputStream output; //lol
 	private boolean stopped = false; //observe connection
 	
 	/**
@@ -100,6 +102,7 @@ public class Server {
 		if(connection != null) {
 			InputStream rawInput = connection.getInputStream();
 			input = new BufferedReader(new InputStreamReader(rawInput));
+			output = connection.getOutputStream();
 			return true;
 		}
 		return false;
@@ -125,12 +128,24 @@ public class Server {
 		return line;
 	}	
 	
+	public void write(byte[] data, int len) {
+		try {
+			output.write(data, 0, len);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	public void stop() {
 		stopped = true;
 	}
 	
 	public boolean getIsStopped() {
 		return stopped;
+	}
+	
+	public boolean isConnected() {
+		return input != null;
 	}
 	
 	public void shutdown() {

@@ -10,6 +10,8 @@ import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
+import java.io.InputStream;
+
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -36,17 +38,20 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 	 * PinController from being initialized, and prevents the drivers for *
 	 * GPIO pins from being loaded (which most computers don't have)      *
 	 **********************************************************************/
-	private static final boolean RUNNING_ON_PI = false;
+	private static final boolean RUNNING_ON_PI = true;
 	
 	/*******************************************************************
 	 * If we want to test functionality of A.R.G.U.S without a client, *
 	 * then we can set this to 'true' to directly control the motor    *
 	 * state from the program.										   *
 	 *******************************************************************/
-	private static final boolean FORCE_DISABLE_CONNECTION = true;
+	private static final boolean FORCE_DISABLE_CONNECTION = false;
 
 	private Server server;
 	private JLabel status; //get reference to connection status
+	public static final int WRITE_SIZE = 16384;
+	
+	private InputStream cameraDataStream;
 	
 	private JPanel motorLeft, motorRight; //Panel to hold pin gfx
 	private JButton quit; //Exit
@@ -115,7 +120,7 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 		JPanel quitPnl = new JPanel(); //More Frame Components
 		quitPnl.setLayout(new GridLayout(2,1));
 		quit = new JButton("Exit");
-		quit.addActionListener(this);
+		quit.addActionListener(new QuitListener());
 		quitPnl.add(quit);
 		
 		status = new JLabel("Status: Waiting for connection...", SwingConstants.CENTER);
@@ -126,7 +131,7 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 
 			@Override
 			public void windowClosing(WindowEvent e) {
-				shutdown();
+				shutdown(0);
 				super.windowClosing(e);
 			}
 				
@@ -139,12 +144,16 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 		
 		leftMotorWindow.createAndSetBuffer(); //Finalize graphics
 		rightMotorWindow.createAndSetBuffer();
-
+		
+		//MOST RECENT CHANGE: PLACED BEFORE SERVER START TO CLEAR OUT SYSTEM.IN
+		tick = new Timer(17, this); //Event tick
+		tick.setRepeats(true);
+		tick.start();
+		
 		if(!FORCE_DISABLE_CONNECTION) {
-			if(!server.startServerAndWaitForConnection()) { //Set up server	
-				shutdown();
-				System.exit(1);
-			}
+			System.out.println(3);
+			if(!server.startServerAndWaitForConnection()) //Set up server	
+				shutdown(1);
 			status.setText("Status: Connected!");
 		}
 		else {
@@ -153,18 +162,23 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 			requestFocus();
 		}
 		
-		
-		tick = new Timer(17, this); //Event tick
-		tick.setRepeats(true);
-		tick.start();
+		beginCameraTick(); //Wait for the server to link before starting the camera
+	}
+
+	private void beginCameraTick() throws IOException {
+		Runtime r = Runtime.getRuntime();
+		Process p = r.exec("raspivid -t 0 -w 300 -h 300 -o -");
+		cameraDataStream = p.getInputStream();
 	}
 
 	/**
 	 * Shuts down the electronic pins, as well as the server connection.
+	 * @param code The exit code.
 	 */
-	private void shutdown() {
+	private void shutdown(int code) {
 		model.shutdownController();
 		server.shutdown();
+		System.exit(code);
 	}
 	
 	/**
@@ -189,6 +203,13 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 	@Override
 	public void keyTyped(KeyEvent e) {}
 	
+	
+	private class QuitListener implements ActionListener { //System.in.read() is blocking, thus we									   //need more than 2 threads
+		public void actionPerformed(ActionEvent e) {	   //need an additional thread
+			shutdown(0);
+		}
+	}
+	
 	/**
 	 * Updates the graphics, model, and connection on tick.
 	 */
@@ -200,16 +221,27 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 			leftMotorWindow.update(); //Update graphics
 			rightMotorWindow.update();
 			
-			if(!FORCE_DISABLE_CONNECTION) {
-				//Update connection - READ
+			//Do we have information to send to the client?
+			byte[] cameraData = new byte[WRITE_SIZE];
+			int numRead = -1;
+			
+			if(!FORCE_DISABLE_CONNECTION && server.isConnected()) {
+				
+				//Recieve movement information from the client
 				String line = server.getNextLine(); //Get input from client
-				
-				
-				//Is the client sending us information?
 				if(line != null) 
 					model.updateKBStateOnDirectCall(line);
 				
-				//Shutdown the timer, and set all pins to off if the connection has been closed
+				//Send video information back into the client
+				try {
+					numRead = cameraDataStream.read(cameraData); //Read data when the program starts, but discard it.
+				} catch (IOException e1) {			             //this is a side-effect of piping [TODO: Fix with
+					e1.printStackTrace();				         //pipe-by-PID?]
+				}
+				if(numRead != -1) 
+					server.write(cameraData,numRead);
+				
+				//If the connection has been closed, shutdown the timer, and set all pins to off.
 				if(server.getIsStopped()) {
 					tick.stop(); //Stop updating the model
 					model.clearAll();
@@ -217,10 +249,6 @@ public class HalfModelUIWithNetwork extends JFrame implements ActionListener, Ke
 					JOptionPane.showMessageDialog(null, "Connection closed by client...");
 				}
 			}
-		}
-		else if(e.getSource().equals(quit)) { //Exit button
-			shutdown();
-			System.exit(0);
 		}
 	}
 	

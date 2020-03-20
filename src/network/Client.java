@@ -8,7 +8,9 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ConnectException;
@@ -29,7 +31,7 @@ import util.SBAssist;
  * @author J2579
  */
 @SuppressWarnings("serial")
-public class MoveClient extends JFrame implements KeyListener, ActionListener {
+public class Client extends JFrame implements KeyListener, ActionListener {
 
 	private DrawWindow gfx; //Graphical Window
 	private Timer tick; //Window / Key Event Update Timer
@@ -37,7 +39,11 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 	private static String host; //IP Address of server to connect to
 	private static int port; //Port to connect to server on
 	private static Socket connection; //Socket to read/write data from
-	private static PrintWriter output; //Wraps the socket, allowing String I/O
+	private static PrintWriter output, log; //Wraps the socket, allowing String I/O
+	private static InputStream input;
+	public static final int READ_SIZE = 16384;
+	
+	private static FileOutputStream fs;
 	
 	private boolean[] model = new boolean[4]; //Keyboard state
 	private static final int LEFT = 0; //...
@@ -83,8 +89,13 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 		
 		OutputStream rawOutput = connection.getOutputStream(); //Get the Socket's stream...
 		output = new PrintWriter(rawOutput, true); //...and wrap it in a PrintWriter
-			
-		MoveClient jsc = new MoveClient();
+		input = connection.getInputStream();	
+		
+		fs = new FileOutputStream("test.h264");
+		FileOutputStream lograw = new FileOutputStream("test.log");
+		log = new PrintWriter(lograw, true);
+		
+		Client jsc = new Client();
 		jsc.setupGraphics();
 	}
 	
@@ -112,6 +123,8 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 				try {
 					output.println("!END_CONNECTION"); //Tell server we dc'd.
 					connection.close();
+					fs.close();
+					log.close();
 					System.out.println("Connection closed.");
 				}
 				catch(IOException ioe) {/*...*/}
@@ -140,6 +153,18 @@ public class MoveClient extends JFrame implements KeyListener, ActionListener {
 		if(ae.getSource().equals(tick)) {
 			gfx.update(); //Update graphical representation of keys.
 			output.println(SBAssist.btoa(model)); //Send the keyboard state to the server.
+			
+			//Get the image data from the server.
+			byte[] data = new byte[READ_SIZE];
+			try {
+				int numRead = input.read(data);
+				if(numRead != -1)
+					fs.write(data, 0, numRead); //Temp
+				
+				log.println(data + ": " + numRead + " bytes.");
+			} catch(IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
